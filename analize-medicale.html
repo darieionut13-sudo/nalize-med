@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Analize Medicale</title>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
+
+  :root {
+    --bg:        #F7F6F3;
+    --surface:   #FFFFFF;
+    --border:    #E8E6E1;
+    --text:      #1A1A1A;
+    --text-soft: #6B6860;
+    --accent:    #2D6A4F;
+    --accent-lt: #D8EDDF;
+    --accent-2:  #52B788;
+    --danger:    #C0392B;
+    --warn:      #E67E22;
+    --radius:    14px;
+    --shadow:    0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── AUTH ── */
+  #auth-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(160deg, #e8f5e9 0%, #F7F6F3 60%);
+  }
+
+  .auth-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .auth-sub {
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .auth-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 32px 28px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.10);
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+
+  .auth-card h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .auth-card p {
+    color: var(--text-soft);
+    font-size: 0.85rem;
+    margin-bottom: 28px;
+    line-height: 1.5;
+  }
+
+  .btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text);
+  }
+
+  .btn-google:hover { background: #f5f5f5; border-color: #ccc; }
+
+  /* ── LAYOUT ── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+
+  .btn-back {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+  .btn-back:hover { background: var(--accent-lt); }
+
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--text);
+  }
+
+  .btn-icon {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-soft);
+    padding: 6px;
+    border-radius: 8px;
+    transition: all 0.15s;
+  }
+  .btn-icon:hover { background: var(--border); color: var(--text); }
+
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main { flex: 1; padding: 16px; max-width: 600px; width: 100%; margin: 0 auto; }
+
+  /* ── MEMBERS SCREEN ── */
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 20px;
+  }
+
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .member-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .member-card:hover { border-color: var(--accent-2); box-shadow: var(--shadow); transform: translateY(-1px); }
+
+  .member-avatar {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    margin: 0 auto 10px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .member-name { font-weight: 600; font-size: 0.95rem; }
+  .member-count { font-size: 0.8rem; color: var(--text-soft); margin-top: 2px; }
+
+  .member-delete {
+    position: absolute;
+    top: 6px; right: 6px;
+    background: none; border: none;
+    color: #ccc; font-size: 0.9rem;
+    cursor: pointer; border-radius: 6px; padding: 2px 5px;
+    transition: all 0.15s;
+  }
+  .member-delete:hover { color: var(--danger); background: #ffeaea; }
+
+  .btn-add-card {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--text-soft);
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .btn-add-card:hover { border-color: var(--accent-2); color: var(--accent); background: var(--accent-lt); }
+  .btn-add-card span { font-size: 1.5rem; }
+
+  /* ── FOLDERS ── */
+  .folders-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .folder-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .folder-item:hover { border-color: var(--accent-2); box-shadow: var(--shadow); }
+
+  .folder-icon {
+    font-size: 1.5rem;
+    width: 44px; height: 44px;
+    background: var(--accent-lt);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .folder-info { flex: 1; min-width: 0; }
+  .folder-name { font-weight: 600; font-size: 0.95rem; }
+  .folder-count { font-size: 0.8rem; color: var(--text-soft); margin-top: 2px; }
+
+  .folder-arrow { color: var(--text-soft); font-size: 1.1rem; }
+
+  .folder-actions { display: flex; gap: 4px; }
+  .btn-sm {
+    background: none; border: none;
+    color: #ccc; font-size: 0.9rem;
+    cursor: pointer; border-radius: 6px; padding: 4px 6px;
+    transition: all 0.15s;
+  }
+  .btn-sm:hover { color: var(--danger); background: #ffeaea; }
+
+  /* ── DOCUMENTS ── */
+  .docs-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .doc-item {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .doc-item:hover { border-color: var(--accent-2); box-shadow: var(--shadow); }
+
+  .doc-type-icon {
+    width: 42px; height: 42px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+  }
+
+  .doc-type-pdf { background: #fdecea; }
+  .doc-type-img { background: #e8f4fd; }
+
+  .doc-info { flex: 1; min-width: 0; }
+  .doc-title { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-meta { font-size: 0.78rem; color: var(--text-soft); margin-top: 3px; }
+
+  .doc-actions { display: flex; gap: 4px; }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed;
+    bottom: 24px; right: 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    padding: 14px 22px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(45,106,79,0.4);
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .fab:hover { background: #235c41; transform: translateY(-1px); }
+  .fab:active { transform: translateY(0); }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 200;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%;
+    max-width: 600px;
+    transform: translateY(30px);
+    transition: transform 0.25s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .modal h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--text-soft); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus { border-color: var(--accent-2); }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    position: relative;
+  }
+  .upload-zone:hover { border-color: var(--accent-2); background: var(--accent-lt); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .upload-zone .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-zone p { color: var(--text-soft); font-size: 0.88rem; }
+  .upload-zone .file-name { color: var(--accent); font-weight: 600; font-size: 0.9rem; margin-top: 6px; }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { background: #235c41; }
+  .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+
+  .btn-secondary {
+    width: 100%;
+    background: none;
+    color: var(--text-soft);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 13px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .btn-secondary:hover { border-color: #aaa; color: var(--text); }
+
+  /* PROGRESS */
+  .progress-bar-wrap { background: var(--border); border-radius: 6px; height: 6px; margin-top: 8px; }
+  .progress-bar { background: var(--accent-2); height: 6px; border-radius: 6px; transition: width 0.3s; }
+
+  /* ── DOC VIEWER ── */
+  .doc-viewer-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    display: none;
+    flex-direction: column;
+  }
+  .doc-viewer-overlay.open { display: flex; }
+
+  .doc-viewer-bar {
+    background: rgba(0,0,0,0.6);
+    padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+    color: white;
+  }
+
+  .doc-viewer-bar h3 { flex: 1; font-size: 1rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .btn-close-viewer {
+    background: rgba(255,255,255,0.15); border: none;
+    color: white; font-size: 1.2rem;
+    border-radius: 8px; padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  .doc-viewer-content { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .doc-viewer-content img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; }
+  .doc-viewer-content iframe { width: 100%; height: 100%; border: none; border-radius: 8px; }
+
+  /* ── COLORS ── */
+  .color-picker { display: flex; gap: 10px; flex-wrap: wrap; }
+  .color-opt {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .color-opt.selected { border-color: var(--text); transform: scale(1.15); }
+
+  /* ── EMOJI PICKER ── */
+  .emoji-picker { display: flex; gap: 8px; flex-wrap: wrap; }
+  .emoji-opt {
+    font-size: 1.4rem; cursor: pointer;
+    padding: 6px; border-radius: 8px;
+    border: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .emoji-opt.selected { border-color: var(--accent); background: var(--accent-lt); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1A1A1A; color: white;
+    padding: 10px 20px; border-radius: 100px;
+    font-size: 0.88rem; font-weight: 500;
+    z-index: 400; opacity: 0;
+    transition: all 0.3s;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-soft);
+  }
+  .empty-state .empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .empty-state p { font-size: 0.9rem; line-height: 1.6; }
+
+  /* ── LOADING ── */
+  .loading { text-align: center; padding: 40px; color: var(--text-soft); font-size: 0.9rem; }
+
+  /* ── MENU OVERLAY ── */
+  .menu-overlay {
+    position: fixed; inset: 0; z-index: 150;
+    display: none;
+  }
+  .menu-overlay.open { display: block; }
+  .menu-dropdown {
+    position: absolute;
+    top: 56px; right: 16px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    overflow: hidden;
+    min-width: 180px;
+  }
+  .menu-item {
+    padding: 13px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    display: flex; align-items: center; gap: 10px;
+    transition: background 0.15s;
+    border: none; background: none; width: 100%; text-align: left;
+    font-family: 'DM Sans', sans-serif; color: var(--text);
+  }
+  .menu-item:hover { background: var(--bg); }
+  .menu-item.danger { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- ─── AUTH SCREEN ─── -->
+<div id="auth-screen">
+  <div class="auth-logo">🩺 AnalizeMed</div>
+  <p class="auth-sub">Dosarul tău medical personal</p>
+  <div class="auth-card">
+    <h2>Bun venit</h2>
+    <p>Toate analizele tale, organizate și accesibile de pe orice dispozitiv.</p>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continuă cu Google
+    </button>
+  </div>
+</div>
+
+<!-- ─── APP ─── -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-back" id="btn-back" onclick="goBack()" style="display:none">←</button>
+      <span class="page-title" id="page-title">AnalizeMed</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-icon" id="btn-menu" onclick="toggleMenu()">⋯</button>
+      <div class="avatar" id="user-avatar" title="Contul meu">?</div>
+    </div>
+  </div>
+
+  <!-- MENU DROPDOWN -->
+  <div class="menu-overlay" id="menu-overlay" onclick="closeMenu()">
+    <div class="menu-dropdown" onclick="event.stopPropagation()">
+      <button class="menu-item" onclick="closeMenu()">
+        <span>🏠</span> Acasă
+      </button>
+      <button class="menu-item danger" onclick="signOut()">
+        <span>🚪</span> Deconectare
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-content">
+    <div class="loading">Se încarcă…</div>
+  </div>
+
+  <!-- FAB -->
+  <button class="fab" id="fab" onclick="onFabClick()" style="display:none">
+    <span>+</span> <span id="fab-label">Adaugă</span>
+  </button>
+
+</div>
+
+<!-- ─── MODAL: ADD MEMBER ─── -->
+<div class="modal-overlay" id="modal-member">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Membru nou</h3>
+    <div class="form-group">
+      <label>Nume</label>
+      <input type="text" id="member-name-input" placeholder="ex: Ionuț, Maria, Ema…" maxlength="30">
+    </div>
+    <div class="form-group">
+      <label>Culoare</label>
+      <div class="color-picker" id="color-picker"></div>
+    </div>
+    <div class="form-group">
+      <label>Emoji</label>
+      <div class="emoji-picker" id="emoji-picker"></div>
+    </div>
+    <button class="btn-primary" onclick="saveMember()">Salvează</button>
+    <button class="btn-secondary" onclick="closeModal('modal-member')">Anulează</button>
+  </div>
+</div>
+
+<!-- ─── MODAL: ADD FOLDER ─── -->
+<div class="modal-overlay" id="modal-folder">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Folder nou</h3>
+    <div class="form-group">
+      <label>Nume folder</label>
+      <input type="text" id="folder-name-input" placeholder="ex: Sânge, Tiroidă, Inimă…" maxlength="40">
+    </div>
+    <div class="form-group">
+      <label>Emoji</label>
+      <div class="emoji-picker" id="folder-emoji-picker"></div>
+    </div>
+    <button class="btn-primary" onclick="saveFolder()">Salvează</button>
+    <button class="btn-secondary" onclick="closeModal('modal-folder')">Anulează</button>
+  </div>
+</div>
+
+<!-- ─── MODAL: ADD DOCUMENT ─── -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h3>Document nou</h3>
+    <div class="form-group">
+      <label>Titlu</label>
+      <input type="text" id="doc-title-input" placeholder="ex: Hemoleucogramă completă" maxlength="60">
+    </div>
+    <div class="form-group">
+      <label>Data recoltării</label>
+      <input type="date" id="doc-date-input">
+    </div>
+    <div class="form-group">
+      <label>Laborator</label>
+      <input type="text" id="doc-lab-input" placeholder="ex: Synevo, Medicover…" maxlength="40">
+    </div>
+    <div class="form-group">
+      <label>Note</label>
+      <textarea id="doc-notes-input" placeholder="Observații, valori importante…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Fișier (PDF sau poză)</label>
+      <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept="image/*,.pdf" onchange="onFileSelected(event)" style="display:none">
+        <div class="upload-icon">📎</div>
+        <p>Apasă pentru a adăuga o poză sau PDF</p>
+        <div class="file-name" id="selected-file-name"></div>
+      </div>
+      <div class="progress-bar-wrap" id="upload-progress-wrap" style="display:none">
+        <div class="progress-bar" id="upload-progress-bar" style="width:0%"></div>
+      </div>
+    </div>
+    <button class="btn-primary" id="save-doc-btn" onclick="saveDocument()">Salvează</button>
+    <button class="btn-secondary" onclick="closeModal('modal-doc')">Anulează</button>
+  </div>
+</div>
+
+<!-- ─── DOCUMENT VIEWER ─── -->
+<div class="doc-viewer-overlay" id="doc-viewer">
+  <div class="doc-viewer-bar">
+    <button class="btn-close-viewer" onclick="closeViewer()">✕</button>
+    <h3 id="viewer-title">Document</h3>
+    <a id="viewer-download" href="#" target="_blank" style="color:white;font-size:1.1rem;text-decoration:none" title="Deschide">↗</a>
+  </div>
+  <div class="doc-viewer-content" id="viewer-content"></div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONFIGURARE FIREBASE — înlocuiește cu datele tale!
+// ══════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyCGVeVfIwKlJOMM_XyiFku4ujGCNwUeTwQ",
+  authDomain: "analizemed-5dcb4.firebaseapp.com",
+  projectId: "analizemed-5dcb4",
+  storageBucket: "analizemed-5dcb4.firebasestorage.app",
+  messagingSenderId: "320469685512",
+  appId: "1:320469685512:web:90d481de47dbeef7fd88bd",
+  measurementId: "G-E8KV5VQ7FY"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+const storage = firebase.storage();
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let currentUser = null;
+let currentMember = null;
+let currentFolder = null;
+let selectedFile = null;
+let selectedColor = '#2D6A4F';
+let selectedMemberEmoji = '👤';
+let selectedFolderEmoji = '📁';
+
+const COLORS = ['#2D6A4F','#1A6B8A','#7B3F9E','#C0392B','#E67E22','#2C3E50','#8B6914','#1A7A5E'];
+const MEMBER_EMOJIS = ['👤','👨','👩','🧒','👧','👦','👴','👵','👶'];
+const FOLDER_EMOJIS = ['🩸','🫀','🧠','🦷','👁','🦴','🫁','💊','🔬','📋','🩺','🫀','⚡','🧬','🔴','🟡'];
+
+// ══════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(e => showToast('Eroare la autentificare'));
+}
+
+function signOut() {
+  closeMenu();
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    const initials = user.displayName ? user.displayName.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2) : '?';
+    document.getElementById('user-avatar').textContent = initials;
+    showMembersScreen();
+  } else {
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function goBack() {
+  if (currentFolder) {
+    currentFolder = null;
+    showFoldersScreen();
+  } else if (currentMember) {
+    currentMember = null;
+    showMembersScreen();
+  }
+}
+
+function updateTopbar(title, showBack) {
+  document.getElementById('page-title').textContent = title;
+  document.getElementById('btn-back').style.display = showBack ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════
+//  MEMBERS SCREEN
+// ══════════════════════════════════════════════
+function showMembersScreen() {
+  currentMember = null;
+  currentFolder = null;
+  updateTopbar('AnalizeMed', false);
+  document.getElementById('fab').style.display = 'flex';
+  document.getElementById('fab-label').textContent = 'Membru nou';
+  loadMembers();
+}
+
+async function loadMembers() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = '<div class="loading">Se încarcă…</div>';
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid).collection('members').orderBy('createdAt').get();
+    renderMembersScreen(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  } catch(e) {
+    main.innerHTML = '<div class="loading">Eroare la încărcare.</div>';
+  }
+}
+
+function renderMembersScreen(members) {
+  const main = document.getElementById('main-content');
+  let html = '<p class="section-label">Membrii familiei</p><div class="members-grid">';
+
+  if (members.length === 0) {
+    html += '</div><div class="empty-state"><div class="empty-icon">👨‍👩‍👧</div><p>Adaugă primul membru al familiei<br>pentru a începe să organizezi analizele.</p></div>';
+  } else {
+    members.forEach(m => {
+      html += `
+        <div class="member-card" onclick="openMember(${JSON.stringify(m).replace(/"/g,'&quot;')})">
+          <button class="member-delete" onclick="event.stopPropagation();deleteMember('${m.id}','${m.name}')" title="Șterge">✕</button>
+          <div class="member-avatar" style="background:${m.color || '#2D6A4F'}">${m.emoji || m.name[0].toUpperCase()}</div>
+          <div class="member-name">${m.name}</div>
+          <div class="member-count" id="count-${m.id}">—</div>
+        </div>`;
+    });
+    html += '<button class="btn-add-card" onclick="openModal(\'modal-member\')"><span>+</span>Adaugă</button>';
+    html += '</div>';
+    // load folder counts async
+    setTimeout(() => members.forEach(m => loadMemberCount(m.id)), 0);
+  }
+
+  main.innerHTML = html;
+}
+
+async function loadMemberCount(memberId) {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('members').doc(memberId)
+    .collection('folders').get();
+  let total = 0;
+  for (const f of snap.docs) {
+    const ds = await db.collection('users').doc(currentUser.uid)
+      .collection('members').doc(memberId)
+      .collection('folders').doc(f.id)
+      .collection('documents').get();
+    total += ds.size;
+  }
+  const el = document.getElementById(`count-${memberId}`);
+  if (el) el.textContent = total === 0 ? 'Niciun document' : `${total} document${total !== 1 ? 'e' : ''}`;
+}
+
+function openMember(member) {
+  currentMember = member;
+  showFoldersScreen();
+}
+
+// ══════════════════════════════════════════════
+//  FOLDERS SCREEN
+// ══════════════════════════════════════════════
+function showFoldersScreen() {
+  currentFolder = null;
+  updateTopbar(currentMember.name, true);
+  document.getElementById('fab').style.display = 'flex';
+  document.getElementById('fab-label').textContent = 'Folder nou';
+  loadFolders();
+}
+
+async function loadFolders() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = '<div class="loading">Se încarcă…</div>';
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid)
+      .collection('members').doc(currentMember.id)
+      .collection('folders').orderBy('createdAt').get();
+    renderFoldersScreen(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  } catch(e) {
+    main.innerHTML = '<div class="loading">Eroare la încărcare.</div>';
+  }
+}
+
+function renderFoldersScreen(folders) {
+  const main = document.getElementById('main-content');
+  let html = `<p class="section-label">Foldere — ${currentMember.name}</p><div class="folders-list">`;
+
+  if (folders.length === 0) {
+    html += '</div><div class="empty-state"><div class="empty-icon">📂</div><p>Niciun folder încă.<br>Creează un folder pentru fiecare categorie de analize.</p></div>';
+  } else {
+    folders.forEach(f => {
+      html += `
+        <div class="folder-item" onclick="openFolder(${JSON.stringify(f).replace(/"/g,'&quot;')})">
+          <div class="folder-icon">${f.emoji || '📁'}</div>
+          <div class="folder-info">
+            <div class="folder-name">${f.name}</div>
+            <div class="folder-count" id="fcount-${f.id}">—</div>
+          </div>
+          <div class="folder-actions">
+            <button class="btn-sm" onclick="event.stopPropagation();deleteFolder('${f.id}','${f.name}')" title="Șterge">🗑</button>
+          </div>
+          <span class="folder-arrow">›</span>
+        </div>`;
+    });
+    html += '</div>';
+    setTimeout(() => folders.forEach(f => loadFolderCount(f.id)), 0);
+  }
+
+  main.innerHTML = html;
+}
+
+async function loadFolderCount(folderId) {
+  const snap = await db.collection('users').doc(currentUser.uid)
+    .collection('members').doc(currentMember.id)
+    .collection('folders').doc(folderId)
+    .collection('documents').get();
+  const el = document.getElementById(`fcount-${folderId}`);
+  if (el) el.textContent = snap.size === 0 ? 'Niciun document' : `${snap.size} document${snap.size !== 1 ? 'e' : ''}`;
+}
+
+function openFolder(folder) {
+  currentFolder = folder;
+  showDocumentsScreen();
+}
+
+// ══════════════════════════════════════════════
+//  DOCUMENTS SCREEN
+// ══════════════════════════════════════════════
+function showDocumentsScreen() {
+  updateTopbar(`${currentFolder.emoji || '📁'} ${currentFolder.name}`, true);
+  document.getElementById('fab').style.display = 'flex';
+  document.getElementById('fab-label').textContent = 'Document nou';
+  loadDocuments();
+}
+
+async function loadDocuments() {
+  const main = document.getElementById('main-content');
+  main.innerHTML = '<div class="loading">Se încarcă…</div>';
+  try {
+    const snap = await db.collection('users').doc(currentUser.uid)
+      .collection('members').doc(currentMember.id)
+      .collection('folders').doc(currentFolder.id)
+      .collection('documents').orderBy('date', 'desc').get();
+    renderDocumentsScreen(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  } catch(e) {
+    main.innerHTML = '<div class="loading">Eroare la încărcare.</div>';
+  }
+}
+
+function renderDocumentsScreen(docs) {
+  const main = document.getElementById('main-content');
+  let html = `<p class="section-label">${currentMember.name} · ${currentFolder.name}</p><div class="docs-list">`;
+
+  if (docs.length === 0) {
+    html += '</div><div class="empty-state"><div class="empty-icon">🔬</div><p>Niciun document în acest folder.<br>Adaugă prima analiză.</p></div>';
+  } else {
+    docs.forEach(d => {
+      const isPdf = d.fileType === 'pdf';
+      const dateStr = d.date ? new Date(d.date).toLocaleDateString('ro-RO', {day:'2-digit',month:'long',year:'numeric'}) : '';
+      html += `
+        <div class="doc-item" onclick="openViewer(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+          <div class="doc-type-icon ${isPdf ? 'doc-type-pdf' : 'doc-type-img'}">${isPdf ? '📄' : '🖼'}</div>
+          <div class="doc-info">
+            <div class="doc-title">${d.title}</div>
+            <div class="doc-meta">${dateStr}${d.lab ? ' · ' + d.lab : ''}${d.notes ? ' · ' + d.notes.slice(0,30) + (d.notes.length > 30 ? '…' : '') : ''}</div>
+          </div>
+          <div class="doc-actions">
+            <button class="btn-sm" onclick="event.stopPropagation();deleteDocument('${d.id}','${d.fileUrl || ''}')" title="Șterge">🗑</button>
+          </div>
+        </div>`;
+    });
+    html += '</div>';
+  }
+
+  main.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+//  FAB ACTION
+// ══════════════════════════════════════════════
+function onFabClick() {
+  if (!currentMember) openModal('modal-member');
+  else if (!currentFolder) openModal('modal-folder');
+  else openAddDocModal();
+}
+
+// ══════════════════════════════════════════════
+//  ADD MEMBER
+// ══════════════════════════════════════════════
+function openModal(id) {
+  if (id === 'modal-member') buildColorPicker();
+  if (id === 'modal-folder') buildFolderEmojiPicker();
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function buildColorPicker() {
+  selectedColor = COLORS[0];
+  selectedMemberEmoji = MEMBER_EMOJIS[0];
+  document.getElementById('color-picker').innerHTML = COLORS.map((c,i) =>
+    `<div class="color-opt${i===0?' selected':''}" style="background:${c}" onclick="selectColor('${c}',this)"></div>`
+  ).join('');
+  document.getElementById('emoji-picker').innerHTML = MEMBER_EMOJIS.map((e,i) =>
+    `<div class="emoji-opt${i===0?' selected':''}" onclick="selectMemberEmoji('${e}',this)">${e}</div>`
+  ).join('');
+}
+
+function selectColor(c, el) {
+  selectedColor = c;
+  document.querySelectorAll('#color-picker .color-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function selectMemberEmoji(e, el) {
+  selectedMemberEmoji = e;
+  document.querySelectorAll('#emoji-picker .emoji-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function saveMember() {
+  const name = document.getElementById('member-name-input').value.trim();
+  if (!name) { showToast('Introdu un nume'); return; }
+  try {
+    await db.collection('users').doc(currentUser.uid).collection('members').add({
+      name, color: selectedColor, emoji: selectedMemberEmoji,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('member-name-input').value = '';
+    closeModal('modal-member');
+    showToast('Membru adăugat ✓');
+    loadMembers();
+  } catch(e) { showToast('Eroare la salvare'); }
+}
+
+async function deleteMember(id, name) {
+  if (!confirm(`Ștergi membrul "${name}" și toate datele sale?`)) return;
+  await db.collection('users').doc(currentUser.uid).collection('members').doc(id).delete();
+  showToast('Șters');
+  loadMembers();
+}
+
+// ══════════════════════════════════════════════
+//  ADD FOLDER
+// ══════════════════════════════════════════════
+function buildFolderEmojiPicker() {
+  selectedFolderEmoji = FOLDER_EMOJIS[0];
+  document.getElementById('folder-emoji-picker').innerHTML = FOLDER_EMOJIS.map((e,i) =>
+    `<div class="emoji-opt${i===0?' selected':''}" onclick="selectFolderEmoji('${e}',this)">${e}</div>`
+  ).join('');
+}
+
+function selectFolderEmoji(e, el) {
+  selectedFolderEmoji = e;
+  document.querySelectorAll('#folder-emoji-picker .emoji-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function saveFolder() {
+  const name = document.getElementById('folder-name-input').value.trim();
+  if (!name) { showToast('Introdu un nume'); return; }
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('members').doc(currentMember.id)
+      .collection('folders').add({
+        name, emoji: selectedFolderEmoji,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    document.getElementById('folder-name-input').value = '';
+    closeModal('modal-folder');
+    showToast('Folder creat ✓');
+    loadFolders();
+  } catch(e) { showToast('Eroare la salvare'); }
+}
+
+async function deleteFolder(id, name) {
+  if (!confirm(`Ștergi folderul "${name}" și toate documentele din el?`)) return;
+  await db.collection('users').doc(currentUser.uid)
+    .collection('members').doc(currentMember.id)
+    .collection('folders').doc(id).delete();
+  showToast('Șters');
+  loadFolders();
+}
+
+// ══════════════════════════════════════════════
+//  ADD DOCUMENT
+// ══════════════════════════════════════════════
+function openAddDocModal() {
+  selectedFile = null;
+  document.getElementById('doc-title-input').value = '';
+  document.getElementById('doc-date-input').value = new Date().toISOString().slice(0,10);
+  document.getElementById('doc-lab-input').value = '';
+  document.getElementById('doc-notes-input').value = '';
+  document.getElementById('selected-file-name').textContent = '';
+  document.getElementById('upload-progress-wrap').style.display = 'none';
+  document.getElementById('save-doc-btn').disabled = false;
+  openModal('modal-doc');
+}
+
+function onFileSelected(e) {
+  selectedFile = e.target.files[0];
+  if (selectedFile) {
+    document.getElementById('selected-file-name').textContent = selectedFile.name;
+  }
+}
+
+async function saveDocument() {
+  const title = document.getElementById('doc-title-input').value.trim();
+  if (!title) { showToast('Introdu un titlu'); return; }
+
+  const btn = document.getElementById('save-doc-btn');
+  btn.disabled = true;
+  btn.textContent = 'Se salvează…';
+
+  try {
+    let fileUrl = null;
+    let fileType = null;
+
+    if (selectedFile) {
+      const ext = selectedFile.name.split('.').pop().toLowerCase();
+      fileType = ext === 'pdf' ? 'pdf' : 'image';
+      const path = `users/${currentUser.uid}/${currentMember.id}/${currentFolder.id}/${Date.now()}_${selectedFile.name}`;
+      const ref = storage.ref(path);
+      const task = ref.put(selectedFile);
+
+      document.getElementById('upload-progress-wrap').style.display = 'block';
+      await new Promise((res, rej) => {
+        task.on('state_changed',
+          snap => {
+            const pct = (snap.bytesTransferred / snap.totalBytes * 100).toFixed(0);
+            document.getElementById('upload-progress-bar').style.width = pct + '%';
+          },
+          rej,
+          async () => {
+            fileUrl = await ref.getDownloadURL();
+            res();
+          }
+        );
+      });
+    }
+
+    await db.collection('users').doc(currentUser.uid)
+      .collection('members').doc(currentMember.id)
+      .collection('folders').doc(currentFolder.id)
+      .collection('documents').add({
+        title,
+        date: document.getElementById('doc-date-input').value,
+        lab: document.getElementById('doc-lab-input').value.trim(),
+        notes: document.getElementById('doc-notes-input').value.trim(),
+        fileUrl, fileType,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+    closeModal('modal-doc');
+    showToast('Document salvat ✓');
+    loadDocuments();
+  } catch(e) {
+    showToast('Eroare la salvare: ' + e.message);
+    btn.disabled = false;
+    btn.textContent = 'Salvează';
+  }
+}
+
+async function deleteDocument(id, fileUrl) {
+  if (!confirm('Ștergi acest document?')) return;
+  try {
+    await db.collection('users').doc(currentUser.uid)
+      .collection('members').doc(currentMember.id)
+      .collection('folders').doc(currentFolder.id)
+      .collection('documents').doc(id).delete();
+    if (fileUrl) {
+      try { await storage.refFromURL(fileUrl).delete(); } catch(e) {}
+    }
+    showToast('Șters');
+    loadDocuments();
+  } catch(e) { showToast('Eroare la ștergere'); }
+}
+
+// ══════════════════════════════════════════════
+//  DOCUMENT VIEWER
+// ══════════════════════════════════════════════
+function openViewer(doc) {
+  document.getElementById('viewer-title').textContent = doc.title;
+  const content = document.getElementById('viewer-content');
+
+  if (!doc.fileUrl) {
+    content.innerHTML = `<div style="color:white;text-align:center;padding:40px">
+      <div style="font-size:3rem;margin-bottom:16px">📝</div>
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:8px">${doc.title}</div>
+      ${doc.date ? `<div style="opacity:0.7;margin-bottom:4px">📅 ${new Date(doc.date).toLocaleDateString('ro-RO',{day:'2-digit',month:'long',year:'numeric'})}</div>` : ''}
+      ${doc.lab ? `<div style="opacity:0.7;margin-bottom:4px">🏥 ${doc.lab}</div>` : ''}
+      ${doc.notes ? `<div style="opacity:0.8;margin-top:16px;max-width:320px;line-height:1.6">${doc.notes}</div>` : ''}
+    </div>`;
+    document.getElementById('viewer-download').href = '#';
+    document.getElementById('viewer-download').style.display = 'none';
+  } else if (doc.fileType === 'pdf') {
+    content.innerHTML = `<iframe src="${doc.fileUrl}" style="width:100%;height:100%;border-radius:8px"></iframe>`;
+    document.getElementById('viewer-download').href = doc.fileUrl;
+    document.getElementById('viewer-download').style.display = 'block';
+  } else {
+    content.innerHTML = `<img src="${doc.fileUrl}" alt="${doc.title}">`;
+    document.getElementById('viewer-download').href = doc.fileUrl;
+    document.getElementById('viewer-download').style.display = 'block';
+  }
+
+  document.getElementById('doc-viewer').classList.add('open');
+}
+
+function closeViewer() {
+  document.getElementById('doc-viewer').classList.remove('open');
+  document.getElementById('viewer-content').innerHTML = '';
+}
+
+// ══════════════════════════════════════════════
+//  MENU
+// ══════════════════════════════════════════════
+function toggleMenu() { document.getElementById('menu-overlay').classList.toggle('open'); }
+function closeMenu() { document.getElementById('menu-overlay').classList.remove('open'); }
+
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ══════════════════════════════════════════════
+//  KEYBOARD / BACK
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['modal-member','modal-folder','modal-doc'].forEach(id => closeModal(id));
+    closeMenu();
+    closeViewer();
+  }
+});
+</script>
+</body>
+</html>
