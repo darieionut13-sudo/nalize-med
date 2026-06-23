@@ -733,7 +733,8 @@ const FOLDER_EMOJIS = ['🩸','🫀','🧠','🦷','👁','🦴','🫁','💊','
 // ══════════════════════════════════════════════
 function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(e => showToast('Eroare la autentificare'));
+  auth.signInWithRedirect(provider).catch(e => showToast('Eroare la autentificare'));
+  const storage = firebase.storage();
 }
 
 function signOut() {
