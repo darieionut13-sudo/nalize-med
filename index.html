@@ -87,25 +87,42 @@
     line-height: 1.5;
   }
 
-  .btn-google {
+  .auth-tabs {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    width: 100%;
-    padding: 14px;
     border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    background: white;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: var(--text);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 24px;
   }
 
-  .btn-google:hover { background: #f5f5f5; border-color: #ccc; }
+  .auth-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text-soft);
+    transition: all 0.2s;
+  }
+
+  .auth-tab.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .auth-error {
+    background: #fdecea;
+    color: var(--danger);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: none;
+    text-align: left;
+  }
 
   /* ── LAYOUT ── */
   #app { display: none; flex-direction: column; min-height: 100vh; }
@@ -555,12 +572,24 @@
   <div class="auth-logo">🩺 AnalizeMed</div>
   <p class="auth-sub">Dosarul tău medical personal</p>
   <div class="auth-card">
-    <h2>Bun venit</h2>
-    <p>Toate analizele tale, organizate și accesibile de pe orice dispozitiv.</p>
-    <button class="btn-google" onclick="signInWithGoogle()">
-      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      Continuă cu Google
-    </button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Autentificare</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Cont nou</button>
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="emailul@tau.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Parolă</label>
+      <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="form-group" id="confirm-group" style="display:none">
+      <label>Confirmă parola</label>
+      <input type="password" id="auth-confirm" placeholder="••••••••" autocomplete="new-password">
+    </div>
+    <button class="btn-primary" id="auth-btn" onclick="handleAuth()">Intră în cont</button>
   </div>
 </div>
 
@@ -699,13 +728,12 @@
 //  CONFIGURARE FIREBASE — înlocuiește cu datele tale!
 // ══════════════════════════════════════════════
 const firebaseConfig = {
-  apiKey: "AIzaSyCGVeVfIwKlJOMM_XyiFku4ujGCNwUeTwQ",
-  authDomain: "analizemed-5dcb4.firebaseapp.com",
-  projectId: "analizemed-5dcb4",
-  storageBucket: "analizemed-5dcb4.firebasestorage.app",
-  messagingSenderId: "320469685512",
-  appId: "1:320469685512:web:90d481de47dbeef7fd88bd",
-  measurementId: "G-E8KV5VQ7FY"
+  apiKey: "AIzaSy-INLOCUIESTE-CU-CHEIA-TA",
+  authDomain: "proiectul-tau.firebaseapp.com",
+  projectId: "proiectul-tau",
+  storageBucket: "proiectul-tau.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -731,10 +759,55 @@ const FOLDER_EMOJIS = ['🩸','🫀','🧠','🦷','👁','🦴','🫁','💊','
 // ══════════════════════════════════════════════
 //  AUTH
 // ══════════════════════════════════════════════
-function signInWithGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithRedirect(provider).catch(e => showToast('Eroare la autentificare'));
-  const storage = firebase.storage();
+let authMode = 'login';
+
+function switchTab(mode) {
+  authMode = mode;
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+  document.getElementById('confirm-group').style.display = mode === 'register' ? 'block' : 'none';
+  document.getElementById('auth-btn').textContent = mode === 'login' ? 'Intră în cont' : 'Creează cont';
+  document.getElementById('auth-error').style.display = 'none';
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const confirm = document.getElementById('auth-confirm').value;
+  const btn = document.getElementById('auth-btn');
+
+  if (!email || !password) { showAuthError('Completează emailul și parola.'); return; }
+  if (authMode === 'register' && password !== confirm) { showAuthError('Parolele nu coincid.'); return; }
+  if (password.length < 6) { showAuthError('Parola trebuie să aibă minim 6 caractere.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Se procesează…';
+
+  try {
+    if (authMode === 'login') {
+      await auth.signInWithEmailAndPassword(email, password);
+    } else {
+      await auth.createUserWithEmailAndPassword(email, password);
+    }
+  } catch(e) {
+    btn.disabled = false;
+    switchTab(authMode);
+    const msgs = {
+      'auth/user-not-found': 'Nu există cont cu acest email.',
+      'auth/wrong-password': 'Parolă incorectă.',
+      'auth/email-already-in-use': 'Există deja un cont cu acest email.',
+      'auth/invalid-email': 'Emailul nu este valid.',
+      'auth/too-many-requests': 'Prea multe încercări. Încearcă mai târziu.',
+      'auth/invalid-credential': 'Email sau parolă incorecte.'
+    };
+    showAuthError(msgs[e.code] || 'Eroare: ' + e.message);
+  }
 }
 
 function signOut() {
@@ -747,7 +820,8 @@ auth.onAuthStateChanged(user => {
   if (user) {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    const initials = user.displayName ? user.displayName.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2) : '?';
+    const email = user.email || '';
+    const initials = email.slice(0,2).toUpperCase();
     document.getElementById('user-avatar').textContent = initials;
     showMembersScreen();
   } else {
